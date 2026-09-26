@@ -7,6 +7,8 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.block.Blocks;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -66,14 +68,26 @@ public class CutBlockType extends BlockType {
 
     @Nullable
     private WoodType getEarlyWoodType() {
-        return BlockSetAPI.getBlockTypeOf(base, WoodType.class);
+        // Fluid and itemless base blocks (lava, water, ...) can never belong to a wood set,
+        // and Moonlight's getBlockTypeOf throws IllegalStateException for them.
+        // Note: do NOT use base.asItem() here, Block.asItem() caches its result and calling
+        // it during registration could poison the cache before items are registered
+        if (base == Blocks.AIR || base instanceof LiquidBlock) return null;
+        try {
+            return BlockSetAPI.getBlockTypeOf(base, WoodType.class);
+        } catch (IllegalStateException e) {
+            // Lookup ran before items were mapped (called from initializeChildrenItems
+            // during finalizeAndFreeze). Not wood, just skip it
+            return null;
+        }
     }
 
     @Override
     protected void initializeChildrenItems() {
         this.woodType = getEarlyWoodType();
-        if (woodType != null) {
-            woodType.addChild("quark:vertical_slab", this.getChild("vertical_slab"));
+        var verticalSlab = this.getChild("vertical_slab");
+        if (woodType != null && verticalSlab != null) {
+            woodType.addChild("quark:vertical_slab", verticalSlab);
         }
     }
 

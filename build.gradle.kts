@@ -17,6 +17,16 @@ mod {
     additional.add("moonlight_min_version")
 }
 
+// Root project has no sources. Disable its jar tasks so ./gradlew build
+// doesn't emit a misleading empty stub (MANIFEST-only jar) in build/libs.
+// Real artifacts are fabric/build/libs/*-fabric.jar and neoforge/build/libs/*-neoforge.jar.
+tasks.named("jar") {
+    enabled = false
+}
+tasks.named("sourcesJar") {
+    enabled = false
+}
+
 
 subprojects {
 

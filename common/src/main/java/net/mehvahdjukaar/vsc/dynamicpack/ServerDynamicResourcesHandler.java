@@ -21,6 +21,7 @@ import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 import net.minecraft.world.item.Item;
 import org.jetbrains.annotations.NotNull;
 
@@ -153,6 +154,10 @@ public class ServerDynamicResourcesHandler extends DynamicServerResourceProvider
         var template = StaticResource.getOrThrow(manager, ResType.GENERIC.getPath(VSC.res("template/loot_table.json")));
 
         VSC.VERTICAL_SLABS.forEach((w, block) -> {
+            // Never override vanilla's shared empty loot table. Blocks that drop nothing
+            // all resolve to minecraft:empty, so writing it once corrupts every empty drop
+            // and writing it twice crashes world load with a duplicate key error
+            if (block.getLootTable().equals(BuiltInLootTables.EMPTY)) return;
             String fullText = template.asString().replace("$v_slab", Utils.getID(block).toString());
             sink.addBytes(block.getLootTable().location(), fullText.getBytes(StandardCharsets.UTF_8), ResType.LOOT_TABLES);
         });

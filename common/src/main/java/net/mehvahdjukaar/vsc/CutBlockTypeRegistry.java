@@ -9,6 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.SlabBlock;
 
 import java.util.*;
@@ -65,7 +66,12 @@ public class CutBlockTypeRegistry extends BlockTypeRegistry<CutBlockType> {
             if (parent.isEmpty())
                 parent = BuiltInRegistries.BLOCK.getOptional(ResourceLocation.withDefaultNamespace(name));
             if (parent.isPresent() && hasRightShapeHack(block)) {
-                return Optional.of(new CutBlockType(id, parent.get(), block));
+                Block parentBlock = parent.get();
+                // The namespace fallback above can match itemless blocks for decorative slabs
+                // (e.g. mod:lava_slab resolving to minecraft:lava). Those are false positives:
+                // they crash wood-type lookup and generate bogus slabs, recipes and loot tables
+                if (parentBlock == Blocks.AIR || parentBlock instanceof LiquidBlock) return Optional.empty();
+                return Optional.of(new CutBlockType(id, parentBlock, block));
             }
         }
         return Optional.empty();
